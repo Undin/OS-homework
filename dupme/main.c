@@ -7,14 +7,14 @@ int buffer_size;
 
 void print(const char *buf, size_t count, size_t times)
 {
-    int written;
-    int i;
+    size_t written;
+    size_t i;
     for (i = 0; i < times; ++i)
     {
         written = 0;
         while (written < count)
         {
-            wittern += write(stdout, buf + written, count - written);
+            written += write(1, buf + written, count - written);
         }
     }
 }
