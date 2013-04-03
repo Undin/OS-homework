@@ -33,7 +33,7 @@ int check_end(char *buf, char *out_buf, int begin, int end)
             return i + 1;
         }
     }
-    return 0;
+    return -1;
 }
 
 int next_token(int fd, char *buf, char *out_buf, size_t size)
@@ -45,11 +45,20 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
     int long_string = 0;
     int read_res;
     int res = check_end(buf, out_buf, count, pos);
+
+    if (size <= 0)
+    {
+        return -1;
+    }
     if (pos == 0)
     {
+        if (eof == 1)
+        {
+            return -1;
+        }
         max_size = size;
     }
-    if (res != 0)
+    if (res != -1)
     {
         count = 0;
         pos -= res;
@@ -82,11 +91,11 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
             if (read_res == 0)
             {
                 eof = 1;
-                return 0;
+                return -1;
             }
             pos += read_res;
             res = check_end(buf, NULL, count, pos);
-            if (res != 0)
+            if (res != -1)
             {
                 count = 0;
                 pos -= res;
@@ -113,7 +122,7 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                 }
                 pos += read_res;
                 res = check_end(buf, out_buf, count, pos);
-                if (res != 0)
+                if (res != -1)
                 {
                     count = 0;
                     pos -= res;
@@ -128,7 +137,7 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                     max_size = size + 1;
                 }
                 count = pos;
-                if (eof == 1 && res == 0)
+                if (eof == 1 && res == -1)
                 {
                     memcpy(out_buf, buf, pos * sizeof(char));
                     pos = 0;
@@ -158,7 +167,7 @@ int main(int argc, char *argv[])
     buffer = malloc((buffer_size + 1) * sizeof(char));
     output_buffer = malloc((buffer_size + 1) * sizeof(char));
     int count;
-    while ((count = next_token(0, buffer, output_buffer, buffer_size)) > 0)
+    while ((count = next_token(0, buffer, output_buffer, buffer_size)) >= 0)
     {
         print(1, output_buffer, count, 2);
     }
