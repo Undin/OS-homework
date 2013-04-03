@@ -2,11 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-char *buffer;
-char *output_buffer;
-int buffer_size;
 
-void print(int fd, const char *buf, size_t count, size_t times)
+
+void print(int fd, char *buf, size_t count, size_t times)
 {
     size_t written;
     size_t i;
@@ -22,7 +20,7 @@ void print(int fd, const char *buf, size_t count, size_t times)
     }
 }
 
-int check_end(const char *buf, char *out_buf, int begin, int end)
+int check_end(char *buf, char *out_buf, int begin, int end)
 {
     int i;
     for (i = begin; i < end; i++)
@@ -38,16 +36,21 @@ int check_end(const char *buf, char *out_buf, int begin, int end)
         }
     }
     return 0;
+}
 
 int next_token(int fd, char *buf, char *out_buf, size_t size)
 {
     static int pos = 0;
     static int count = 0;
-    static int max_size = size;
+    static int max_size = 0;
     static int eof = 0;
     int long_string = 0;
     int read_res;
     int res = check_end(buf, out_buf, count, pos);
+    if (pos == 0)
+    {
+        max_size = size;
+    }
     if (res != 0)
     {
         count = 0;
@@ -126,9 +129,26 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
     }
 }
 
+char *buffer;
+char *output_buffer;
+
 int main(int argc, char *argv[])
 {
-    int k = 0;
-
+    int buffer_size = 0;
+    int i;
+    for (i = 0; argv[1][i] != 0; ++i)
+    {
+        buffer_size *= 10;
+        buffer_size += argv[1][0] - '0';
+    }
+    buffer = malloc((buffer_size + 1) * sizeof(char));
+    output_buffer = malloc((buffer_size + 1) * sizeof(char));
+    int count;
+    while ((count = next_token(0, buffer, output_buffer, buffer_size)) > 0)
+    {
+        print(1, output_buffer, count, 2);
+    }
+    free(buffer);
+    free(output_buffer);
     return 0;
 }
