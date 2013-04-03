@@ -2,8 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-
-
 void print(int fd, char *buf, size_t count, size_t times)
 {
     size_t written;
@@ -63,11 +61,17 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
     }
     if (pos != 0)
     {
-        max_size++;
+        max_size = size + 1;
     }
     count = pos;
     if (eof == 1)
     {
+        if (pos != 0)
+        {
+            memcpy(out_buf, buf, pos * sizeof(char));
+            pos = 0;
+            return count;
+        }
         return 0;
     }
     while (0 == 0)
@@ -94,10 +98,10 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
             }
             else
             {
-                max_size++;
+                max_size = size + 1;
             }
             count = pos;
-        }
+         }
         if (long_string == 0)
         {   
             while (pos != max_size)
@@ -119,7 +123,17 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                     }
                     return res - 1;
                 }
+                if (pos != 0)
+                {
+                    max_size = size + 1;
+                }
                 count = pos;
+                if (eof == 1 && res == 0)
+                {
+                    memcpy(out_buf, buf, pos * sizeof(char));
+                    pos = 0;
+                    return count;
+                }
             }
         }
         long_string = 1;
