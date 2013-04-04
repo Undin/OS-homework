@@ -6,8 +6,11 @@ void print(int fd, char *buf, size_t count, size_t times)
 {
     size_t written;
     size_t i;
-    buf[count] = '\n';
-    count++;
+    if (count == 0 || buf[count - 1] != '\n')
+    {
+        buf[count] = '\n';
+        count++;
+    }
     for (i = 0; i < times; ++i)
     {
         written = 0;
@@ -44,20 +47,19 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
     static int eof = 0;
     int long_string = 0;
     int read_res;
-    int res = check_end(buf, out_buf, count, pos);
-
-    if (size <= 0)
+    if (size == 0 || eof == 1)
     {
         return -1;
     }
     if (pos == 0)
     {
-        if (eof == 1)
-        {
-            return -1;
-        }
         max_size = size;
     }
+    else
+    {
+        max_size = size + 1;
+    }
+    int res = check_end(buf, out_buf, count, pos);
     if (res != -1)
     {
         count = 0;
@@ -73,16 +75,6 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
         max_size = size + 1;
     }
     count = pos;
-    if (eof == 1)
-    {
-        if (pos != 0)
-        {
-            memcpy(out_buf, buf, pos * sizeof(char));
-            pos = 0;
-            return count;
-        }
-        return 0;
-    }
     while (0 == 0)
     {
         while (pos != max_size && long_string == 1)
@@ -119,6 +111,12 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                 if (read_res == 0)
                 {
                     eof = 1;
+                    if (pos != 0)
+                    {
+                        memcpy(out_buf, buf, pos * sizeof(char));
+                        return pos;
+                    }
+                    return -1;
                 }
                 pos += read_res;
                 res = check_end(buf, out_buf, count, pos);
@@ -137,12 +135,6 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                     max_size = size + 1;
                 }
                 count = pos;
-                if (eof == 1 && res == -1)
-                {
-                    memcpy(out_buf, buf, pos * sizeof(char));
-                    pos = 0;
-                    return count;
-                }
             }
         }
         long_string = 1;
@@ -159,6 +151,10 @@ int main(int argc, char *argv[])
 {
     int buffer_size = 0;
     int i;
+    if (argc == 1)
+    {
+        return 1;
+    }
     for (i = 0; argv[1][i] != 0; ++i)
     {
         buffer_size *= 10;
