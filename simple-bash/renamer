@@ -1,0 +1,9 @@
+#!/bin/sh
+
+for file_name in "$@"; do
+    echo "$file_name"
+    read new_file_name
+    if [ "$new_file_name" ]; then
+        mv "$file_name" "$new_file_name"
+    fi
+done
