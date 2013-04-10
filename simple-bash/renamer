@@ -1,9 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 for file_name in "$@"; do
-    echo "$file_name"
-    read new_file_name
-    if [ "$new_file_name" ]; then
-        mv "$file_name" "$new_file_name"
+    if [[ (-e "$file_name") ]]; then
+        echo "$file_name"
+        read new_file_name
+        if [[ (-n "$new_file_name") && !(-e "$new_file_name") ]]; then
+            mv "$file_name" "$new_file_name"
+        fi
     fi
 done
