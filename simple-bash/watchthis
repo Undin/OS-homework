@@ -10,15 +10,12 @@ fi
 
 prev="$dir_name/previous"
 cur="$dir_name/current"
-"$@" > "$cur"
 echo -n "" > "$prev"
-cat "$cur"
-diff -u "$cur" "$prev"
 
 while true; do
-    sleep "$interval"
-    cat "$cur" > "$prev"
     "$@" > "$cur"
     cat "$cur"
     diff -u "$cur" "$prev"
+    sleep "$interval"
+    cat "$cur" > "$prev"
 done
