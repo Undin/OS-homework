@@ -1,0 +1,24 @@
+#!/bin/bash
+
+interval="$1"
+shift 1
+
+dir_name="/tmp/.watchthis"
+if [[ !(-d "$dir_name") ]]; then
+    mkdir "$dir_name"
+fi
+
+previous="$dir_name/prev"
+current="$dir_name/cur"
+"$@" > "$current"
+echo -n "" > "$previous"
+cat "$current"
+diff -u "$current" "$previous"
+
+while true; do
+    sleep "$interval"
+    cat "$current" > "$previous"
+    "$@" > "$current"
+    cat "$current"
+    diff -u "$current" "$previous"
+done
