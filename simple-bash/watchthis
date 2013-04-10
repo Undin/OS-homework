@@ -8,17 +8,17 @@ if [[ !(-d "$dir_name") ]]; then
     mkdir "$dir_name"
 fi
 
-previous="$dir_name/prev"
-current="$dir_name/cur"
-"$@" > "$current"
-echo -n "" > "$previous"
-cat "$current"
-diff -u "$current" "$previous"
+prev="$dir_name/previous"
+cur="$dir_name/current"
+"$@" > "$cur"
+echo -n "" > "$prev"
+cat "$cur"
+diff -u "$cur" "$prev"
 
 while true; do
     sleep "$interval"
-    cat "$current" > "$previous"
-    "$@" > "$current"
-    cat "$current"
-    diff -u "$current" "$previous"
+    cat "$cur" > "$prev"
+    "$@" > "$cur"
+    cat "$cur"
+    diff -u "$cur" "$prev"
 done
