@@ -13,7 +13,6 @@ search_broken_symlinks()
             fi
             for children in "$file_name"/*
             do
-                #echo "$children"
                 search_broken_symlinks "$children"
             done
         fi
