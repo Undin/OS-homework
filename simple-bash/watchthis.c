@@ -10,7 +10,7 @@ char prev_path[] = "/tmp/.watchthis/previous";
 char cur_path[] = "/tmp/.watchthis/current";
 char dir_path[] = "/tmp/.watchthis";
 char exec_path[] = "/bin/";
-char diff_command[] = "diff -u \"/tmp/.watchthis/current\" \"/tmp/.watchthis/previous\"";
+char diff_command[] = "diff -u \"/tmp/.watchthis/previous\" \"/tmp/.watchthis/current\"";
 char buffer[10];
 
 void print(int fd, int k)
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         mkdir(dir_path, 0777);
 
         int prev = open(prev_path, O_CREAT, 0666);
-        int cur = open(cur_path, O_CREAT, 0666);
+        int cur = open(cur_path, O_CREAT | O_TRUNC, 0666);
         close(prev);
         close(cur);
         int out = dup(1);
