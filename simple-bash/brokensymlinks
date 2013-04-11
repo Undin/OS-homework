@@ -2,25 +2,22 @@
 
 search_broken_symlinks()
 {
-
     file_name="$1"
     if [[ -h "$file_name" || -e "$file_name" ]]; then
         if [[ !(-e "$file_name") ]]; then
             echo "$file_name"
-        elif [[ -d "$file_name" ]]; then
+        elif [[ -d "$file_name" && !(-h "$file_name") ]]; then
             if [[ "$file_name" = "/" ]]; then
                 file_name=""
             fi
-            for children in "$file_name"/*
-            do
+            for children in "$file_name"/*; do
                 search_broken_symlinks "$children"
             done
         fi
     fi
 }
 
-for file in "$@"
-do
+for file in "$@"; do
     search_broken_symlinks "$file"
 done
 
