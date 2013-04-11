@@ -1,21 +1,24 @@
 #!/bin/bash
 
-interval="$1"
-shift 1
+if [[ "$#" > 1 ]]; then
 
-dir_name="/tmp/.watchthis"
-if [[ !(-d "$dir_name") ]]; then
-    mkdir "$dir_name"
+    interval="$1"
+    shift 1
+
+    dir_name="/tmp/.watchthis"
+    if [[ !(-d "$dir_name") ]]; then
+        mkdir "$dir_name"
+    fi
+
+    prev="$dir_name/previous"
+    cur="$dir_name/current"
+    echo -n "" > "$prev"
+
+    while true; do
+        "$@" > "$cur"
+        cat "$cur"
+        diff -u "$prev" "$cur"
+        sleep "$interval"
+        cat "$cur" > "$prev"
+    done
 fi
-
-prev="$dir_name/previous"
-cur="$dir_name/current"
-echo -n "" > "$prev"
-
-while true; do
-    "$@" > "$cur"
-    cat "$cur"
-    diff -u "$cur" "$prev"
-    sleep "$interval"
-    cat "$cur" > "$prev"
-done
