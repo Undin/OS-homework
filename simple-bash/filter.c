@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
         int pos;
         while ((pos = next(buffer, position, read_symbol)) == -1)
         {
-            printf("next_pos = %d\n", pos);
             position = read_symbol;
             if (read_symbol == buffer_size)
             {
