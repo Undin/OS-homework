@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "#!/bin/bash
+
+time=\$(stat -c %Z \"\$1\")
+cur_time=\$(date +%s)
+
+(( dif=(\$cur_time-\$time)/86400 ))
+if [[ \$dif -gt \"$3\" || \$dif -lt \"$2\" ]]; then
+    exit 1;
+fi
+exit 0;" > blablabla
+
+chmod +wx blablabla
+find $1 -print0 | ./filter -z -- ./blablabla
+
+#stat -c %Z "$1"
