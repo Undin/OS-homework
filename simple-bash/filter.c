@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     }
 
     char *buffer = malloc(sizeof(char) * buffer_size);
-    int devnull = open("\\dev\\null", O_WRONLY);
+    int devnull = open("/dev/null", O_WRONLY);
 
     while (!eof)
     {
@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
             else
             {
                 int i;
+                dup2(devnull, 1);
                 execvp(arr[0], arr);
                 exit(1);
             }
