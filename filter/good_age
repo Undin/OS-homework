@@ -9,9 +9,9 @@ cur_time=\$(date +%s)
 if [[ \$dif -gt \"$3\" || \$dif -lt \"$2\" ]]; then
     exit 1;
 fi
-exit 0;" > blablabla
+exit 0;" > script
 
-chmod +wx blablabla
-find $1 -print0 | ./filter -z -- ./blablabla
+chmod +wx script
+find $1 -print0 | ./filter -z -- .script
 
-#stat -c %Z "$1"
+
