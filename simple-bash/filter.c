@@ -131,5 +131,6 @@ int main(int argc, char *argv[])
             read_symbol -= pos + 1;
         }
     }
+    close(devnull);
     return 0;
 }
