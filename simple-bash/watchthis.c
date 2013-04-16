@@ -37,6 +37,28 @@ void rewrite(int in, int out)
     }
 }
 
+size_t mstrlen(const char *str)
+{
+    size_t i = 0;
+    while (str[i] != '\0')
+    {
+        i++;
+    }
+    return i;
+}
+
+char* mstrcat(char *dest, const char *src)
+{
+    size_t dest_len = mstrlen(dest);
+    size_t i;
+    for (i = 0; src[i] != '\0'; i++)
+    {
+        dest[dest_len + i] = src[i];
+    }
+    dest[dest_len + i] = '\0';
+    return dest;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc > 2)
@@ -45,15 +67,15 @@ int main(int argc, char *argv[])
         int i = 0;
         for (i = 2; i < argc; i++)
         {
-            len += strlen(argv[i]);
+            len += mstrlen(argv[i]);
         }
         len += argc - 1;
         char *command = malloc(len);
         command[0] = 0;
         for (i = 2; i < argc; i++)
         {
-            strcat(command, argv[i]);
-            strcat(command, " ");
+            mstrcat(command, argv[i]);
+            mstrcat(command, " ");
         }
         
         int interval = atoi(argv[1]);
