@@ -76,9 +76,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {   
-                    execl("/usr/bin/diff", "diff", "-u", 
-                          "/tmp/.watchthis/previous",
-                          "/tmp/.watchthis/current", NULL);
+                    execl("/usr/bin/diff", "diff", "-u", prev_path, cur_path, NULL);
                     return 1;
                 }
             }
