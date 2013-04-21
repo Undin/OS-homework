@@ -103,11 +103,6 @@ int main(int argc, char *argv[])
     char **margv = (char **)malloc(sizeof(char *) * argc);
     char **echo = (char **)malloc(sizeof(char *) * 3);
     char e[] = "echo";
-    //char s[] = "cat";
-    //char f[] = "c";
-    //margv[0] = s;
-    //margv[1] = f;
-    //margv[1] = NULL;
     for (i = 0; i < argc - 1; i++)
     {
         margv[i] = argv[i + 1];
@@ -139,12 +134,11 @@ int main(int argc, char *argv[])
             }
             
             //printf("%d\n", symbol);
-            /*if (symbol == buffer_size)
+            if (symbol == buffer_size)
             {
                 exit(1);
-            }*/
+            }
             char *ss = (char *)malloc(sizeof(char) * (symbol + 1));
-            //scanf("%s", ss);
             memcpy(ss, buffer, symbol);
             ss[symbol] = '\0';
             char *j;
@@ -159,8 +153,6 @@ int main(int argc, char *argv[])
                     *j = '#';
                 }
             }
-
-            //printf("!!!%s?", ss);
 
             std::multimap<char *, char *, bool(*)(char *, char *)>::iterator it = m.find(ss);
             if (it == m.end())
@@ -180,17 +172,17 @@ int main(int argc, char *argv[])
             int fds2[2];
             pipe(fds2);
             int pid2;
-            if (pid2 = fork())
+            if (!(pid2 = fork()))
             { 
                 dup2(fds2[1], 1);
                 close(fds[0]);
                 close(fds[1]);
                 close(fds2[1]);
                 close(fds2[0]);
-                //print(1, values[i], strlen(values[i]));
+                print(1, values[i], strlen(values[i]));
                 //printf("%s", values[i]);
-                echo[1] = values[i];
-                execvp(echo[0], echo);
+                /*echo[1] = values[i];
+                execvp(echo[0], echo);*/
                 /*int stat;
                 waitpid(pid2, &stat, 0);*/
                 return 0;
@@ -203,6 +195,8 @@ int main(int argc, char *argv[])
                 close(fds[1]);
                 close(fds2[0]);
                 close(fds2[1]);
+                int stat;
+                waitpid(pid2, &stat, 0);
                 execvp(margv[0], margv);
             }
         }
