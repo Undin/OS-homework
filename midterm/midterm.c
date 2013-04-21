@@ -95,7 +95,6 @@ int main(int argc, char *argv[])
             read_symbol -= pos + 1;
         }
     }
-
     
     int pid;
     int i;
@@ -216,7 +215,6 @@ int main(int argc, char *argv[])
     {
         free(keys[i]);
     }
-
     return 0;
 }
 
