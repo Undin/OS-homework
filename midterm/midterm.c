@@ -1,8 +1,7 @@
 #include <unistd.h>
 #include <string.h>
-#include <stdlib.h>
 #include <vector>
-#include <stdio.h>
+#include <stdlib.h>
 #include <sys/wait.h>
 #include <map>
 #include <fcntl.h>
@@ -101,15 +100,11 @@ int main(int argc, char *argv[])
     int pid;
     int i;
     char **margv = (char **)malloc(sizeof(char *) * argc);
-    char **echo = (char **)malloc(sizeof(char *) * 3);
-    char e[] = "echo";
     for (i = 0; i < argc - 1; i++)
     {
         margv[i] = argv[i + 1];
     }
     margv[argc - 1] = NULL;
-    echo[0] = e;
-    echo[2] = NULL;
     int out = dup(1);
     for (i = 0; i < values.size(); i++)
     {
@@ -133,7 +128,6 @@ int main(int argc, char *argv[])
                 symbol += res;
             }
             
-            //printf("%d\n", symbol);
             if (symbol == buffer_size)
             {
                 exit(1);
@@ -158,7 +152,6 @@ int main(int argc, char *argv[])
             if (it == m.end())
             {
                 keys.push_back(ss);
-                //printf("YA VSTAVILOS%s\n", keys.back());
                 m.insert(std::make_pair(ss, values[i]));
             }
             else
@@ -180,11 +173,6 @@ int main(int argc, char *argv[])
                 close(fds2[1]);
                 close(fds2[0]);
                 print(1, values[i], strlen(values[i]));
-                //printf("%s", values[i]);
-                /*echo[1] = values[i];
-                execvp(echo[0], echo);*/
-                /*int stat;
-                waitpid(pid2, &stat, 0);*/
                 return 0;
             }
             else
@@ -202,16 +190,10 @@ int main(int argc, char *argv[])
         }
     }
     std::multimap<char *, char *, bool(*)(char *, char *)>::iterator iter;
-    for (iter = m.begin(); iter != m.end(); iter++)
-    {
-        printf("|%s|\n", iter->first);
-    }
     for (i = 0; i < keys.size(); i++)
     {
-        //printf("key = %s\n", keys[i]);
         std::pair<std::multimap<char *, char *, bool(*)(char *, char *)>::iterator, 
                   std::multimap<char *, char *, bool(*)(char *, char *)>::iterator > result = m.equal_range(keys[i]);
-        //printf("^^^%d^^^\n", result.first == result.second);
         int l = strlen(keys[i]);
         memcpy(str, keys[i], l - 1);
         str[l - 1] = '\0';
@@ -221,7 +203,6 @@ int main(int argc, char *argv[])
         std::multimap<char *, char *, bool(*)(char *, char *)>::iterator it = result.first;
         for (it = result.first; it != result.second; it++)
         {
-            //printf("$$$%s\n", it->second);
             print(fd, it->second, strlen(it->second));
         }
         close(fd);
