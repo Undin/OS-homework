@@ -60,7 +60,7 @@ void print(int fd, char *buffer, int len)
 
 std::multimap<char *, char *, bool(*)(char*, char *)> m(comp);
 
-int main(int arc, char *argv[])
+int main(int argc, char *argv[])
 {
     while (!eof)
     {
@@ -100,14 +100,19 @@ int main(int arc, char *argv[])
     
     int pid;
     int i;
-    char **margv = (char **)malloc(sizeof(char *) * 2);
+    char **margv = (char **)malloc(sizeof(char *) * argc);
     char **echo = (char **)malloc(sizeof(char *) * 3);
     char e[] = "echo";
-    char s[] = "cat";
+    //char s[] = "cat";
     //char f[] = "c";
-    margv[0] = s;
+    //margv[0] = s;
     //margv[1] = f;
-    margv[1] = NULL;
+    //margv[1] = NULL;
+    for (i = 0; i < argc - 1; i++)
+    {
+        margv[i] = argv[i + 1];
+    }
+    margv[argc - 1] = NULL;
     echo[0] = e;
     echo[2] = NULL;
     int out = dup(1);
@@ -130,7 +135,6 @@ int main(int arc, char *argv[])
             while (res)
             {
                 res = read(0, buffer + symbol, 1);
-                //printf("%d\n", symbol);
                 symbol += res;
             }
             
@@ -170,8 +174,6 @@ int main(int arc, char *argv[])
                 m.insert(std::make_pair((*it).first, values[i]));
                 free(ss);
             }
-            //scanf("%s", ss);
-            //free(ss);
         }
         else
         {
@@ -180,21 +182,21 @@ int main(int arc, char *argv[])
             int pid2;
             if (pid2 = fork())
             { 
-                //printf("!!!\n");
                 dup2(fds2[1], 1);
                 close(fds[0]);
                 close(fds[1]);
                 close(fds2[1]);
                 close(fds2[0]);
+                //print(1, values[i], strlen(values[i]));
+                //printf("%s", values[i]);
                 echo[1] = values[i];
                 execvp(echo[0], echo);
-                /*                int stat;
-                waitpid(pid2, &stat, 0);
-                return 0;*/
+                /*int stat;
+                waitpid(pid2, &stat, 0);*/
+                return 0;
             }
             else
             {   
-                //printf("&&&\n");
                 dup2(fds2[0], 0);
                 dup2(fds[1], 1);
                 close(fds[0]);
@@ -206,19 +208,22 @@ int main(int arc, char *argv[])
         }
     }
     std::multimap<char *, char *, bool(*)(char *, char *)>::iterator iter;
-    /*for (iter = m.begin(); iter != m.end(); iter++)
+    for (iter = m.begin(); iter != m.end(); iter++)
     {
         printf("|%s|\n", iter->first);
-    }*/
+    }
     for (i = 0; i < keys.size(); i++)
     {
         //printf("key = %s\n", keys[i]);
         std::pair<std::multimap<char *, char *, bool(*)(char *, char *)>::iterator, 
                   std::multimap<char *, char *, bool(*)(char *, char *)>::iterator > result = m.equal_range(keys[i]);
         //printf("^^^%d^^^\n", result.first == result.second);
-        int fd = open(keys[i], O_CREAT, 0666);
+        int l = strlen(keys[i]);
+        memcpy(str, keys[i], l - 1);
+        str[l - 1] = '\0';
+        int fd = open(str, O_CREAT, 0666);
         close(fd);
-        fd = open(keys[i], O_WRONLY);
+        fd = open(str, O_WRONLY);
         std::multimap<char *, char *, bool(*)(char *, char *)>::iterator it = result.first;
         for (it = result.first; it != result.second; it++)
         {
