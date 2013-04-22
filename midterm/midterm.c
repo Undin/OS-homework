@@ -141,10 +141,6 @@ int main(int argc, char *argv[])
                 {
                     *j = '|';
                 }
-                if (*j == '\n')
-                {
-                    *j = '#';
-                }
             }
 
             std::multimap<char *, char *, bool(*)(char *, char *)>::iterator it = m.find(ss);
@@ -217,4 +213,3 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-
