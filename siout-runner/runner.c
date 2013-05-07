@@ -39,10 +39,31 @@ std::pair<char *, int> next(int fd)
    return make_pair(char *(0), 0);
 }
 
+int number_of_null(char *p, int n)
+{
+    char *i;
+    int count = 0;
+    for (i = p; i < p + n, i++)
+    {
+        if (*i == '\0')
+        {
+            count++;
+        }
+    }
+    return count;
+}
 
 int main(int argc, char **argv)
 {
     int in = open(argv, O_RDONLY);
-    
+    std::pair<char *, int> pair;
+    while (true)
+    {
+        pair = next(in);
+        if (pair.first == NULL)
+        {
+            break;
+        }
+
     return 0;
 }
