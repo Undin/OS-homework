@@ -1,8 +1,9 @@
 #include <unistd.h>
+#include <vector>
+#include <sys/wait.h>
 #include <string.h>
 #include <fcntl.h>
 #include <utility>
-#include <stdlib.h>
 #include <stdio.h>
 
 char buffer[4096];
@@ -56,22 +57,6 @@ int count_of_null(char *p, int n)
     return count;
 }
 
-/*void print(char *b, int n)
-{
-    for (int i = 0; i < n; i++)
-    {
-        if (b[i] == '\0')
-        {
-            printf("0");
-        }
-        else
-        {
-            printf("%c", b[i]);
-        }
-    }
-    printf("\n");
-}*/
-
 char **prepare(char *p, int n, int l)
 {
     char *s1, *s2;
@@ -108,6 +93,7 @@ int main(int argc, char **argv)
     }
     int in = open(argv[1], O_RDONLY);
     std::pair<char *, int> pair;
+    std::vector<int> pids;
     while (true)
     {
         pair = next(in);
@@ -128,13 +114,23 @@ int main(int argc, char **argv)
             return 2;
         }
         char **arg = prepare(pair.first, pair.second, count - 2);
-        if (!fork())
+        int pid;
+        if (!(pid = fork()))
         {
             execution(arg, pair.first, pair.second);
             exit(255);
         }
+        else
+        {
+            pids.push_back(pid);
+        }
         free(arg);
         free(pair.first);
+    }
+    for (int i = 0; i < pids.size(); i++)
+    {
+        int st;
+        waitpid(pids[i], &st, 0);
     }
     close(in);
     return 0;
