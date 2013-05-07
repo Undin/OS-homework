@@ -3,9 +3,9 @@
 #include <fcntl.h>
 #include <vector>
 #include <utility>
+#include <stdlib.h>
+#include <stdio.h>
 
-std::vector<std::pair<std::pair<char *, char*>, std::vector<char *>> data;
-std::vector<char *> strings;
 char buffer[4096];
 int buffer_size = 4096;
 int position = 0;
@@ -19,19 +19,19 @@ std::pair<char *, int> next(int fd)
    {
        for (i = current_position; i < position - 1; i++)
        {
-           if (buffer_size[i] == '\0' && buffer_size[i + 1] == '\0')
+           if (buffer[i] == '\0' && buffer[i + 1] == '\0')
            {
-               char *p = malloc(i + 1);
-               memcpy(p, buffer, i + 1);
+               char *p = (char *)malloc(i);
+               memcpy(p, buffer, i);
                memmove(buffer, buffer + i + 2, position - i - 2);
                position -= i + 2;
                current_position = 0;
-               return std::make_pair(p, i + 2);
+               return std::make_pair(p, i + 1);
            }
        }
        if (position == buffer_size)
        {
-           return std::make_pair(char*(0), -1);
+           return std::pair<char *, int>(NULL, -1);
        }
        int res = read(fd, buffer + position, buffer_size - position);
        if (res == 0)
@@ -40,14 +40,14 @@ std::pair<char *, int> next(int fd)
        }
        position += res;
    }
-   return make_pair(char *(0), 0);
+   return std::pair<char *, int>(NULL, 0);
 }
 
-int number_of_null(char *p, int n)
+int count_of_null(char *p, int n)
 {
     char *i;
     int count = 0;
-    for (i = p; i < p + n, i++)
+    for (i = p; i < p + n; i++)
     {
         if (*i == '\0')
         {
@@ -57,28 +57,57 @@ int number_of_null(char *p, int n)
     return count;
 }
 
-void execution(char *p, int n, int l)
+/*void print(char *b, int n)
+{
+    for (int i = 0; i < n; i++)
+    {
+        if (b[i] == '\0')
+        {
+            printf("0");
+        }
+        else
+        {
+            printf("%c", b[i]);
+        }
+    }
+    printf("\n");
+}*/
+
+char **prepare(char *p, int n, int l)
 {
     char *s1, *s2;
-    int in = open(p, O_RDONLY);
-    for (s1 = p + n - 2; s1 != '\0'; s1--);
-    int out = open(s1 + 1, O_WRONLY | O_CREAT, 0644);
+    for (s1 = p + n - 2; *s1 != '\0'; s1--);
     int len = strlen(p) + 1;
-    char **arg = malloc(l + 1);
+    char **arg = (char **)malloc(l + 1);
     int i;
-    for (s2 = p + len, i = 0; i < l - 1; s2 += strlen(s2) + 1, i++)
+    for (s2 = p + len, i = 0; i < l; s2 += strlen(s2) + 1, i++)
     {
         arg[i] = s2;
     }
-    arg[l - 1] = NULL;
+    arg[l] = 0;
+    return arg;
+}
+
+void execution(char **arg, char *p, int n)
+{
+    char *s1, *s2;
+    int in = open(p, O_RDONLY);
+    for (s1 = p + n - 2; *s1 != '\0'; s1--);
+    int out = open(s1 + 1, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     dup2(in, 0);
     dup2(out, 1);
+    close(in);
+    close(out);
     execvp(arg[0], arg);
 }
 
 int main(int argc, char **argv)
 {
-    int in = open(argv, O_RDONLY);
+    if (argc != 2)
+    {
+        return -3;
+    }
+    int in = open(argv[1], O_RDONLY);
     std::pair<char *, int> pair;
     while (true)
     {
@@ -94,16 +123,19 @@ int main(int argc, char **argv)
                 break;
             }
         }
-
         int count = count_of_null(pair.first, pair.second);
         if (count < 3)
         {
             return -2;
         }
+        char **arg = prepare(pair.first, pair.second, count - 2);
         if (!fork())
         {
-            execution(pair.first, pair.second, count - 2);
+            execution(arg, pair.first, pair.second);
         }
+        free(arg);
+        free(pair.first);
     }
+    close(in);
     return 0;
 }
