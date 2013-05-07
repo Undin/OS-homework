@@ -29,6 +29,10 @@ std::pair<char *, int> next(int fd)
                return std::make_pair(p, i + 2);
            }
        }
+       if (position == buffer_size)
+       {
+           return std::make_pair(char*(0), -1);
+       }
        int res = read(fd, buffer + position, buffer_size - position);
        if (res == 0)
        {
@@ -53,6 +57,25 @@ int number_of_null(char *p, int n)
     return count;
 }
 
+void execution(char *p, int n, int l)
+{
+    char *s1, *s2;
+    int in = open(p, O_RDONLY);
+    for (s1 = p + n - 2; s1 != '\0'; s1--);
+    int out = open(s1 + 1, O_WRONLY | O_CREAT, 0644);
+    int len = strlen(p) + 1;
+    char **arg = malloc(l + 1);
+    int i;
+    for (s2 = p + len, i = 0; i < l - 1; s2 += strlen(s2) + 1, i++)
+    {
+        arg[i] = s2;
+    }
+    arg[l - 1] = NULL;
+    dup2(in, 0);
+    dup2(out, 1);
+    execvp(arg[0], arg);
+}
+
 int main(int argc, char **argv)
 {
     int in = open(argv, O_RDONLY);
@@ -62,8 +85,25 @@ int main(int argc, char **argv)
         pair = next(in);
         if (pair.first == NULL)
         {
-            break;
+            if (pair.second == -1)
+            {
+                return -1;
+            }
+            if (pair.second == 0)
+            {
+                break;
+            }
         }
 
+        int count = count_of_null(pair.first, pair.second);
+        if (count < 3)
+        {
+            return -2;
+        }
+        if (!fork())
+        {
+            execution(pair.first, pair.second, count - 2);
+        }
+    }
     return 0;
 }
