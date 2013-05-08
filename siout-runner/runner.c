@@ -4,7 +4,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <utility>
-#include <stdio.h>
+#include <stdlib.h>
 
 char buffer[4096];
 int buffer_size = 4096;
@@ -21,7 +21,7 @@ std::pair<char *, int> next(int fd)
         {
             if (buffer[i] == '\0' && buffer[i + 1] == '\0')
             {
-                char *p = (char *)malloc(i);
+                char *p = (char *)malloc(sizeof(char) * i);
                 memcpy(p, buffer, i);
                 memmove(buffer, buffer + i + 2, position - i - 2);
                 position -= i + 2;
@@ -62,7 +62,7 @@ char **prepare(char *p, int n, int l)
     char *s1, *s2;
     for (s1 = p + n - 2; *s1 != '\0'; s1--);
     int len = strlen(p) + 1;
-    char **arg = (char **)malloc(l + 1);
+    char **arg = (char **)malloc(sizeof(char *) * (l + 1));
     int i;
     for (s2 = p + len, i = 0; i < l; s2 += strlen(s2) + 1, i++)
     {
