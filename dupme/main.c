@@ -30,9 +30,9 @@ int check_end(char *buf, char *out_buf, int begin, int end)
         {
             if (out_buf != NULL)
             {
-                memcpy(out_buf, buf, i * sizeof(char));
+                memcpy(out_buf, buf, i);
             }
-            memmove(buf, buf + i + 1, (end - i - 1) * sizeof(char));
+            memmove(buf, buf + i + 1, end - i - 1);
             return i + 1;
         }
     }
@@ -113,7 +113,7 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                     eof = 1;
                     if (pos != 0)
                     {
-                        memcpy(out_buf, buf, pos * sizeof(char));
+                        memcpy(out_buf, buf, pos);
                         return pos;
                     }
                     return -1;
@@ -160,8 +160,8 @@ int main(int argc, char *argv[])
         buffer_size *= 10;
         buffer_size += argv[1][0] - '0';
     }
-    buffer = malloc((buffer_size + 1) * sizeof(char));
-    output_buffer = malloc((buffer_size + 1) * sizeof(char));
+    buffer = malloc(buffer_size + 1);
+    output_buffer = malloc(buffer_size + 1);
     int count;
     while ((count = next_token(0, buffer, output_buffer, buffer_size)) >= 0)
     {
