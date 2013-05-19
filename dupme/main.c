@@ -75,7 +75,7 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
         max_size = size + 1;
     }
     count = pos;
-    while (0 == 0)
+    while (1)
     {
         while (pos != max_size && long_string == 1)
         {
@@ -150,16 +150,11 @@ char *output_buffer;
 int main(int argc, char *argv[])
 {
     int buffer_size = 0;
-    int i;
     if (argc == 1)
     {
         return 1;
     }
-    for (i = 0; argv[1][i] != 0; ++i)
-    {
-        buffer_size *= 10;
-        buffer_size += argv[1][0] - '0';
-    }
+    buffer_size = atoi(argv[1]);
     buffer = malloc(buffer_size + 1);
     output_buffer = malloc(buffer_size + 1);
     int count;
