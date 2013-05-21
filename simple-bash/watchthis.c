@@ -1,17 +1,14 @@
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <stdio.h>
 
-const int buffer_size = 64;
-char prev_path[] = "/tmp/.watchthis/previous";
-char cur_path[] = "/tmp/.watchthis/current";
-char dir_path[] = "/tmp/.watchthis";
-char buffer[64];
+static const int buffer_size = 4096;
 
-void print(int fd, int k)
+void print(int fd, char *buffer, int k)
 {
     int written = 0;
     while (k - written > 0)
@@ -20,7 +17,7 @@ void print(int fd, int k)
     }
 }
 
-void rewrite(int in, int out)
+void rewrite(int in, int out, char *buffer)
 {
     int res = 1;
     while (res)
@@ -28,13 +25,18 @@ void rewrite(int in, int out)
         res = read(in, buffer, buffer_size);
         if (res != 0)
         {
-            print(out, res);
+            print(out, buffer, res);
         }
     }
 }
 
 int main(int argc, char *argv[])
 {
+    char prev_path[] = "/tmp/.watchthis/previous";
+    char cur_path[] = "/tmp/.watchthis/current";
+    char dir_path[] = "/tmp/.watchthis";
+    char buffer[buffer_size];
+
     if (argc > 2)
     {
         char **command = malloc(sizeof(char *) * (argc - 1));
@@ -56,7 +58,7 @@ int main(int argc, char *argv[])
         {
             prev = open(prev_path, O_WRONLY | O_TRUNC);
             cur = open(cur_path, O_RDWR);
-            rewrite(cur, prev);
+            rewrite(cur, prev, buffer);
             close(cur);
             cur = open(cur_path, O_WRONLY | O_TRUNC);
             int pid;
@@ -66,7 +68,7 @@ int main(int argc, char *argv[])
                 waitpid(pid, &stat, 0);
                 close(cur);
                 cur = open(cur_path, O_RDONLY);
-                rewrite(cur, 1);
+                rewrite(cur, 1, buffer);
                 close(prev);
                 close(cur);
                 if ((pid = fork()) != 0)
