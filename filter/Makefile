@@ -1,2 +1,2 @@
-main: filter.c
-	gcc -o filter filter.c
+all: filter.c
+	gcc -Wall -Wextra -Werror -o filter filter.c
