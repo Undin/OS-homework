@@ -6,7 +6,10 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-static const int buffer_size = 4096;
+const int buffer_size = 4096;
+const char prev_path[] = "/tmp/.watchthis/previous";
+const char cur_path[] = "/tmp/.watchthis/current";
+const char dir_path[] = "/tmp/.watchthis";
 
 void print(int fd, char *buffer, int k)
 {
@@ -44,64 +47,62 @@ void rewrite(int in, int out, char *buffer)
 
 int main(int argc, char *argv[])
 {
-    char prev_path[] = "/tmp/.watchthis/previous";
-    char cur_path[] = "/tmp/.watchthis/current";
-    char dir_path[] = "/tmp/.watchthis";
-    char buffer[buffer_size];
-
-    if (argc > 2)
+    if (argc <= 2)
     {
-        char **command = safe_malloc(sizeof(char *) * (argc - 1));
-        int i;
-        for (i = 0; i < argc - 2; i++)
-        {
-            command[i] = argv[i + 2];
-        }
-        command[argc - 2] = NULL;
-        int interval = atoi(argv[1]);
+        exit(1);
+    }
 
-        mkdir(dir_path, 0777);
-        int prev = open(prev_path, O_CREAT, 0666);
-        int cur = open(cur_path, O_CREAT | O_TRUNC, 0666);
-        close(prev);
+    char buffer[buffer_size];
+    char **command = safe_malloc(sizeof(char *) * (argc - 1));
+    int i;
+    for (i = 0; i < argc - 2; i++)
+    {
+        command[i] = argv[i + 2];
+    }
+    command[argc - 2] = NULL;
+    int interval = atoi(argv[1]);
+
+    mkdir(dir_path, 0777);
+    int prev = open(prev_path, O_CREAT, 0666);
+    int cur = open(cur_path, O_CREAT | O_TRUNC, 0666);
+    close(prev);
+    close(cur);
+
+    while (1)
+    {
+        prev = open(prev_path, O_WRONLY | O_TRUNC);
+        cur = open(cur_path, O_RDWR);
+        rewrite(cur, prev, buffer);
         close(cur);
-
-        while (1)
+        cur = open(cur_path, O_WRONLY | O_TRUNC);
+        int pid;
+        if ((pid = fork()) != 0)
         {
-            prev = open(prev_path, O_WRONLY | O_TRUNC);
-            cur = open(cur_path, O_RDWR);
-            rewrite(cur, prev, buffer);
+            int stat;
+            waitpid(pid, &stat, 0);
             close(cur);
-            cur = open(cur_path, O_WRONLY | O_TRUNC);
-            int pid;
+            cur = open(cur_path, O_RDONLY);
+            rewrite(cur, 1, buffer);
+            close(prev);
+            close(cur);
             if ((pid = fork()) != 0)
             {
-                int stat;
                 waitpid(pid, &stat, 0);
-                close(cur);
-                cur = open(cur_path, O_RDONLY);
-                rewrite(cur, 1, buffer);
-                close(prev);
-                close(cur);
-                if ((pid = fork()) != 0)
-                {
-                    waitpid(pid, &stat, 0);
-                    sleep(interval);
-                }
-                else
-                {   
-                    execl("/usr/bin/diff", "diff", "-u", prev_path, cur_path, NULL);
-                    return 1;
-                }
+                sleep(interval);
             }
             else
             {
-                dup2(cur, 1);
-                execvp(command[0], command);
+                execl("/usr/bin/diff", "diff", "-u", prev_path, cur_path, NULL);
                 return 1;
             }
         }
-        free(command);
+        else
+        {
+            dup2(cur, 1);
+            execvp(command[0], command);
+            return 1;
+        }
     }
+    free(command);
     return 0;
 }

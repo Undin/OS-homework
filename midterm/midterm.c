@@ -60,7 +60,11 @@ void *safe_malloc(size_t size)
 }
 
 int main(int argc, char *argv[])
-{   
+{
+    if (argc < 2)
+    {
+        exit(1);
+    }
     std::vector<char *> values;
     int read_symbol = 0;
     int eof_flag = 0;
@@ -76,7 +80,7 @@ int main(int argc, char *argv[])
             position = read_symbol;
             if (read_symbol == buffer_size)
             {
-                return -1;
+                exit(1);
             }
             int res = read(0, buffer + position, buffer_size - position);
             if (res == 0)
@@ -108,7 +112,7 @@ int main(int argc, char *argv[])
         margv[j] = argv[j + 1];
     }
     margv[argc - 1] = NULL;
-    std::multimap<char *, char *, bool(*)(char*, char *)> m(comp);
+    std::multimap<char *, char *, bool(*)(char *, char *)> m(comp);
     int pid;
     std::vector<char *> keys;
     for (size_t i = 0; i < values.size(); i++)

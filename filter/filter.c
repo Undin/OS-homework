@@ -41,6 +41,10 @@ void *safe_malloc(size_t size)
 
 int main(int argc, char *argv[])
 {
+    if (argc < 3)
+    {
+        exit(1);
+    }
     int opt;
     int used_delimiter = 0;
     char delimiter;
