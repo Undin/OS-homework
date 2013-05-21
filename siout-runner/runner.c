@@ -6,22 +6,20 @@
 #include <utility>
 #include <stdlib.h>
 
-char buffer[4096];
-int buffer_size = 4096;
+static const int buffer_size = 4096;
 
-std::pair<char *, int> next(int fd)
+std::pair<char *, int> next(int fd, char *buffer)
 {
-    static bool eof = false;
+    static bool eof_flag = false;
     static int position = 0;
     static int current_position = 0; 
-    int i;
-    while (!eof)
+    while (!eof_flag)
     {
-        for (i = current_position; i < position - 1; i++)
+        for (int i = current_position; i < position - 1; i++)
         {
             if (buffer[i] == '\0' && buffer[i + 1] == '\0')
             {
-                char *p = (char *)malloc(sizeof(char) * i);
+                char *p = (char *) malloc(i);
                 memcpy(p, buffer, i);
                 memmove(buffer, buffer + i + 2, position - i - 2);
                 position -= i + 2;
@@ -36,7 +34,7 @@ std::pair<char *, int> next(int fd)
         int res = read(fd, buffer + position, buffer_size - position);
         if (res == 0)
         {
-            eof = true;
+            eof_flag = true;
         }
         position += res;
     }
@@ -45,9 +43,8 @@ std::pair<char *, int> next(int fd)
 
 int count_of_null(char *p, int n)
 {
-    char *i;
     int count = 0;
-    for (i = p; i < p + n; i++)
+    for (char *i = p; i < p + n; i++)
     {
         if (*i == '\0')
         {
@@ -59,14 +56,12 @@ int count_of_null(char *p, int n)
 
 char **prepare(char *p, int n, int l)
 {
-    char *s1, *s2;
-    for (s1 = p + n - 2; *s1 != '\0'; s1--);
     int len = strlen(p) + 1;
-    char **arg = (char **)malloc(sizeof(char *) * (l + 1));
-    int i;
-    for (s2 = p + len, i = 0; i < l; s2 += strlen(s2) + 1, i++)
+    char **arg = (char **) malloc(sizeof(char *) * (l + 1));
+    int i = 0;
+    for (char *s = p + len; i < l; s += strlen(s) + 1, i++)
     {
-        arg[i] = s2;
+        arg[i] = s;
     }
     arg[l] = 0;
     return arg;
@@ -74,10 +69,10 @@ char **prepare(char *p, int n, int l)
 
 void execution(char **arg, char *p, int n)
 {
-    char *s1, *s2;
+    char *s;
     int in = open(p, O_RDONLY);
-    for (s1 = p + n - 2; *s1 != '\0'; s1--);
-    int out = open(s1 + 1, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+    for (s = p + n - 2; *s != '\0'; s--);
+    int out = open(s + 1, O_WRONLY | O_TRUNC | O_CREAT, 0644);
     dup2(in, 0);
     dup2(out, 1);
     close(in);
@@ -89,19 +84,21 @@ int main(int argc, char **argv)
 {
     if (argc != 2)
     {
-        return 3;
+        exit(1);
     }
     int in = open(argv[1], O_RDONLY);
     std::pair<char *, int> pair;
     std::vector<int> pids;
+    char buffer[buffer_size];
+
     while (true)
     {
-        pair = next(in);
+        pair = next(in, buffer);
         if (pair.first == NULL)
         {
             if (pair.second == -1)
             {
-                return 1;
+                exit(1);
             }
             if (pair.second == 0)
             {
@@ -111,7 +108,7 @@ int main(int argc, char **argv)
         int count = count_of_null(pair.first, pair.second);
         if (count < 3)
         {
-            return 2;
+            exit(1);
         }
         char **arg = prepare(pair.first, pair.second, count - 2);
         int pid;
@@ -127,7 +124,7 @@ int main(int argc, char **argv)
         free(arg);
         free(pair.first);
     }
-    for (int i = 0; i < pids.size(); i++)
+    for (size_t i = 0; i < pids.size(); i++)
     {
         int st;
         waitpid(pids[i], &st, 0);
