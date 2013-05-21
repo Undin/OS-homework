@@ -4,13 +4,13 @@
 
 void print(int fd, char *buf, size_t count, size_t times)
 {
-    size_t written;
-    size_t i;
     if (count == 0 || buf[count - 1] != '\n')
     {
         buf[count] = '\n';
         count++;
     }
+    size_t written;
+    size_t i;
     for (i = 0; i < times; ++i)
     {
         written = 0;
@@ -39,50 +39,33 @@ int check_end(char *buf, char *out_buf, int begin, int end)
     return -1;
 }
 
-int next_token(int fd, char *buf, char *out_buf, size_t size)
+int next_token(int fd, char *buf, char *out_buf, int size)
 {
     static int pos = 0;
     static int count = 0;
-    static int max_size = 0;
-    static int eof = 0;
+    static int eof_flag = 0;
     int long_string = 0;
     int read_res;
-    if (size == 0 || eof == 1)
+    if (size == 0 || eof_flag == 1)
     {
         return -1;
-    }
-    if (pos == 0)
-    {
-        max_size = size;
-    }
-    else
-    {
-        max_size = size + 1;
     }
     int res = check_end(buf, out_buf, count, pos);
     if (res != -1)
     {
         count = 0;
         pos -= res;
-        if (pos == 0)
-        {
-            max_size = size;
-        }
         return res - 1;
-    }
-    if (pos != 0)
-    {
-        max_size = size + 1;
     }
     count = pos;
     while (1)
     {
-        while (pos != max_size && long_string == 1)
+        while (pos != size && long_string == 1)
         {
-            read_res = read(fd, buf + pos, max_size - pos);
+            read_res = read(fd, buf + pos, size - pos);
             if (read_res == 0)
             {
-                eof = 1;
+                eof_flag = 1;
                 return -1;
             }
             pos += read_res;
@@ -93,24 +76,16 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                 pos -= res;
                 long_string = 0;
             }
-            if (pos == 0)
-            {
-                max_size = size;
-            }
-            else
-            {
-                max_size = size + 1;
-            }
             count = pos;
          }
         if (long_string == 0)
         {   
-            while (pos != max_size)
+            while (pos != size)
             {
-                read_res = read(fd, buf + pos, max_size - pos);
+                read_res = read(fd, buf + pos, size - pos);
                 if (read_res == 0)
                 {
-                    eof = 1;
+                    eof_flag = 1;
                     if (pos != 0)
                     {
                         memcpy(out_buf, buf, pos);
@@ -124,15 +99,7 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
                 {
                     count = 0;
                     pos -= res;
-                    if (pos == 0)
-                    {
-                        max_size = size;
-                    }
                     return res - 1;
-                }
-                if (pos != 0)
-                {
-                    max_size = size + 1;
                 }
                 count = pos;
             }
@@ -140,25 +107,20 @@ int next_token(int fd, char *buf, char *out_buf, size_t size)
         long_string = 1;
         count = 0;
         pos = 0;
-        max_size = size;
     }
 }
 
-char *buffer;
-char *output_buffer;
-
 int main(int argc, char *argv[])
 {
-    int buffer_size = 0;
-    if (argc == 1)
+    if (argc != 2)
     {
-        return 1;
+        exit(1);
     }
-    buffer_size = atoi(argv[1]);
-    buffer = malloc(buffer_size + 1);
-    output_buffer = malloc(buffer_size + 1);
+    int buffer_size = atoi(argv[1]);
+    char *buffer = malloc(buffer_size + 1);
+    char *output_buffer = malloc(buffer_size + 1);
     int count;
-    while ((count = next_token(0, buffer, output_buffer, buffer_size)) >= 0)
+    while ((count = next_token(0, buffer, output_buffer, buffer_size + 1)) >= 0)
     {
         print(1, output_buffer, count, 2);
     }
