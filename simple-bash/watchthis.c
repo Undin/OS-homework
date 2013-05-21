@@ -17,6 +17,18 @@ void print(int fd, char *buffer, int k)
     }
 }
 
+void *safe_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+    {
+        char error[] = "memory allocation failed\n";
+        print(2, error, strlen(error));
+        exit(1);
+    }
+    return tmp;
+}
+
 void rewrite(int in, int out, char *buffer)
 {
     int res = 1;
@@ -39,7 +51,7 @@ int main(int argc, char *argv[])
 
     if (argc > 2)
     {
-        char **command = malloc(sizeof(char *) * (argc - 1));
+        char **command = safe_malloc(sizeof(char *) * (argc - 1));
         int i;
         for (i = 0; i < argc - 2; i++)
         {

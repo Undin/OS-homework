@@ -8,6 +8,23 @@
 
 static const int buffer_size = 4096;
 
+void *safe_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+    {
+        char error[] = "memory allocation failed\n";
+    int len = strlen(error);
+    int written = 0;
+    while (len - written > 0)
+    {
+        written += write(2, error + written, len  - written);
+    }
+        exit(1);
+    }
+    return tmp;
+}
+
 std::pair<char *, int> next(int fd, char *buffer)
 {
     static bool eof_flag = false;
@@ -19,7 +36,7 @@ std::pair<char *, int> next(int fd, char *buffer)
         {
             if (buffer[i] == '\0' && buffer[i + 1] == '\0')
             {
-                char *p = (char *) malloc(i);
+                char *p = (char *) safe_malloc(i);
                 memcpy(p, buffer, i);
                 memmove(buffer, buffer + i + 2, position - i - 2);
                 position -= i + 2;
@@ -54,10 +71,10 @@ int count_of_null(char *p, int n)
     return count;
 }
 
-char **prepare(char *p, int n, int l)
+char **prepare(char *p, int l)
 {
     int len = strlen(p) + 1;
-    char **arg = (char **) malloc(sizeof(char *) * (l + 1));
+    char **arg = (char **) safe_malloc(sizeof(char *) * (l + 1));
     int i = 0;
     for (char *s = p + len; i < l; s += strlen(s) + 1, i++)
     {
@@ -110,7 +127,7 @@ int main(int argc, char **argv)
         {
             exit(1);
         }
-        char **arg = prepare(pair.first, pair.second, count - 2);
+        char **arg = prepare(pair.first, count - 2);
         int pid;
         if (!(pid = fork()))
         {

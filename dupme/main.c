@@ -21,6 +21,18 @@ void print(int fd, char *buf, size_t count, size_t times)
     }
 }
 
+void *malloc_(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+    {
+        char error[] = "memory allocation failed\n";
+        print(2, error, strlen(error), 1);
+        exit(1);
+    }
+    return tmp;
+}
+
 int check_end(char *buf, char *out_buf, int begin, int end)
 {
     int i;
@@ -117,8 +129,8 @@ int main(int argc, char *argv[])
         exit(1);
     }
     int buffer_size = atoi(argv[1]);
-    char *buffer = malloc(buffer_size + 1);
-    char *output_buffer = malloc(buffer_size + 1);
+    char *buffer = malloc_(buffer_size + 1);
+    char *output_buffer = malloc_(buffer_size + 1);
     int count;
     while ((count = next_token(0, buffer, output_buffer, buffer_size + 1)) >= 0)
     {

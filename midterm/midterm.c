@@ -47,6 +47,18 @@ void print(int fd, char *buffer, int len)
     }
 }
 
+void *safe_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+    {
+        char error[] = "memory allocation failed\n";
+        print(2, error, strlen(error));
+        exit(1);
+    }
+    return tmp;
+}
+
 int main(int argc, char *argv[])
 {   
     std::vector<char *> values;
@@ -81,7 +93,7 @@ int main(int argc, char *argv[])
         }
         if (pos != -1)
         {
-            char *str = (char *) malloc(pos + 2);
+            char *str = (char *) safe_malloc(pos + 2);
             memcpy(str, buffer, pos + 1);
             str[pos + 1] = '\0';
             values.push_back(str);
@@ -90,7 +102,7 @@ int main(int argc, char *argv[])
         }
     }
     
-    char **margv = (char **) malloc(sizeof(char *) * argc);
+    char **margv = (char **) safe_malloc(sizeof(char *) * argc);
     for (int j = 0; j < argc - 1; j++)
     {
         margv[j] = argv[j + 1];
@@ -124,7 +136,7 @@ int main(int argc, char *argv[])
             {
                 exit(1);
             }
-            char *ss = (char *) malloc(symbol + 1);
+            char *ss = (char *) safe_malloc(symbol + 1);
             memcpy(ss, buffer, symbol);
             ss[symbol] = '\0';
             for (char *j = ss; *j != '\0'; j++)

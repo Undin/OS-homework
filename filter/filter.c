@@ -18,13 +18,25 @@ int next(char *buffer, int begin, int end, char delimiter)
     return -1;
 }
 
-void print(char *buffer, int len)
+void print(int fd, char *buffer, int len)
 {
     int written = 0;
     while (len - written > 0)
     {
-        written += write(1, buffer + written, len - written);
+        written += write(fd, buffer + written, len - written);
     }
+}
+
+void *safe_malloc(size_t size)
+{
+    void *tmp = malloc(size);
+    if (tmp == NULL)
+    {
+        char error[] = "memory allocation failed\n";
+        print(2, error, strlen(error));
+        exit(1);
+    }
+    return tmp;
 }
 
 int main(int argc, char *argv[])
@@ -68,7 +80,7 @@ int main(int argc, char *argv[])
         used_delimiter = 1;
     }
 
-    char *buffer = malloc(buffer_size);
+    char *buffer = safe_malloc(buffer_size);
     int devnull = open("/dev/null", O_WRONLY);
     int eof_flag = 0;
     int read_symbol = 0;
@@ -99,10 +111,10 @@ int main(int argc, char *argv[])
         }
         if (pos != -1)
         {
-            char *str = malloc(pos + 1);
+            char *str = safe_malloc(pos + 1);
             memcpy(str, buffer, pos + 1);
             str[pos] = '\0';
-            char **arr = malloc(sizeof(char *) * (argc - optind + 2));
+            char **arr = safe_malloc(sizeof(char *) * (argc - optind + 2));
             int i;
             for (i = 0; i < argc - optind + 2; i++)
             {
@@ -118,7 +130,7 @@ int main(int argc, char *argv[])
                 if (WIFEXITED(stat) && WEXITSTATUS(stat) == 0)
                 {
                     str[pos] = '\n';
-                    print(str, pos + 1);
+                    print(1, str, pos + 1);
                 }
             }
             else
