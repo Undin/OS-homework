@@ -2,10 +2,8 @@
 
 for file_name in "$@"; do
     if [[ (-e "$file_name") ]]; then
-        echo "$file_name"
-        read new_file_name
-        if [[ (-n "$new_file_name") && !(-e "$new_file_name") ]]; then
-            mv "$file_name" "$new_file_name"
-        fi
+        read -e -i "$(basename "$file_name")" new_file_name
+        dir_name=`dirname "$file_name"`
+        mv "$file_name" "${dir_name}/${new_file_name}"
     fi
 done
