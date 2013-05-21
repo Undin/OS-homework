@@ -14,12 +14,12 @@ void *safe_malloc(size_t size)
     if (tmp == NULL)
     {
         char error[] = "memory allocation failed\n";
-    int len = strlen(error);
-    int written = 0;
-    while (len - written > 0)
-    {
-        written += write(2, error + written, len  - written);
-    }
+        int len = strlen(error);
+        int written = 0;
+        while (len - written > 0)
+        {
+            written += write(2, error + written, len  - written);
+        }
         exit(1);
     }
     return tmp;
