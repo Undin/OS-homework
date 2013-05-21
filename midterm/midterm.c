@@ -6,19 +6,11 @@
 #include <map>
 #include <fcntl.h>
 
-int eof = 0;
-
-int buffer_size = 4096;
-char buffer[4096];
-char str[4096];
-int read_symbol = 0;
-std::vector<char *> values;
-std::vector<char *> keys;
+static const int buffer_size = 4096;
 
 int next(char *buffer, int begin, int end)
 {
-    int i;
-    for (i = begin; i != end; i++)
+    for (int i = begin; i != end; i++)
     {
         if (buffer[i] == '\n')
         {
@@ -36,8 +28,7 @@ bool comp(char* a, char* b)
     {
         len = len_b;
     }
-    int i = 0;
-    for (i = 0; i < len; i++)
+    for (size_t i = 0; i < len; i++)
     {
         if (a[i] != b[i])
         {
@@ -56,12 +47,15 @@ void print(int fd, char *buffer, int len)
     }
 }
 
-
-std::multimap<char *, char *, bool(*)(char*, char *)> m(comp);
-
 int main(int argc, char *argv[])
-{
-    while (!eof)
+{   
+    std::vector<char *> values;
+    int read_symbol = 0;
+    int eof_flag = 0;
+    char str[buffer_size];
+    char buffer[buffer_size];
+
+    while (eof_flag == 0)
     {
         int position = 0;
         int pos;
@@ -75,7 +69,7 @@ int main(int argc, char *argv[])
             int res = read(0, buffer + position, buffer_size - position);
             if (res == 0)
             {
-                eof = 1;
+                eof_flag = 1;
                 if (read_symbol == 0)
                 {
                     pos = -1;
@@ -87,25 +81,25 @@ int main(int argc, char *argv[])
         }
         if (pos != -1)
         {
-            char *str = (char *)malloc(sizeof(char) * (pos + 2));
+            char *str = (char *) malloc(pos + 2);
             memcpy(str, buffer, pos + 1);
             str[pos + 1] = '\0';
             values.push_back(str);
-            memmove(buffer, buffer + pos + 1, sizeof(char) * (buffer_size - pos - 1));
+            memmove(buffer, buffer + pos + 1, buffer_size - pos - 1);
             read_symbol -= pos + 1;
         }
     }
     
-    int pid;
-    int i;
-    char **margv = (char **)malloc(sizeof(char *) * argc);
-    for (i = 0; i < argc - 1; i++)
+    char **margv = (char **) malloc(sizeof(char *) * argc);
+    for (int j = 0; j < argc - 1; j++)
     {
-        margv[i] = argv[i + 1];
+        margv[j] = argv[j + 1];
     }
     margv[argc - 1] = NULL;
-    int out = dup(1);
-    for (i = 0; i < values.size(); i++)
+    std::multimap<char *, char *, bool(*)(char*, char *)> m(comp);
+    int pid;
+    std::vector<char *> keys;
+    for (size_t i = 0; i < values.size(); i++)
     {
         int fds[2];
         pipe(fds);
@@ -120,7 +114,6 @@ int main(int argc, char *argv[])
 
             int res = 1;
             int symbol = 0;
-            int position;
             while (res)
             {
                 res = read(0, buffer + symbol, 1);
@@ -131,11 +124,10 @@ int main(int argc, char *argv[])
             {
                 exit(1);
             }
-            char *ss = (char *)malloc(sizeof(char) * (symbol + 1));
+            char *ss = (char *) malloc(symbol + 1);
             memcpy(ss, buffer, symbol);
             ss[symbol] = '\0';
-            char *j;
-            for (j = ss; *j != '\0'; j++)
+            for (char *j = ss; *j != '\0'; j++)
             {
                 if (*j == '\\')
                 {
@@ -185,29 +177,28 @@ int main(int argc, char *argv[])
         }
     }
     std::multimap<char *, char *, bool(*)(char *, char *)>::iterator iter;
-    for (i = 0; i < keys.size(); i++)
+    for (size_t i = 0; i < keys.size(); i++)
     {
         std::pair<std::multimap<char *, char *, bool(*)(char *, char *)>::iterator, 
-                  std::multimap<char *, char *, bool(*)(char *, char *)>::iterator > result = m.equal_range(keys[i]);
+                  std::multimap<char *, char *, bool(*)(char *, char *)>::iterator> result = m.equal_range(keys[i]);
         int l = strlen(keys[i]);
         memcpy(str, keys[i], l - 1);
         str[l - 1] = '\0';
         int fd = open(str, O_CREAT, 0666);
         close(fd);
         fd = open(str, O_WRONLY);
-        std::multimap<char *, char *, bool(*)(char *, char *)>::iterator it = result.first;
-        for (it = result.first; it != result.second; it++)
+        for (std::multimap<char *, char *, bool(*)(char *, char *)>::iterator it = result.first; it != result.second; it++)
         {
             print(fd, it->second, strlen(it->second));
         }
         close(fd);
     }
 
-    for (i = 0; i < values.size(); i++)
+    for (size_t i = 0; i < values.size(); i++)
     {
         free(values[i]);
     }
-    for (i = 0; i < keys.size(); i++)
+    for (size_t i = 0; i < keys.size(); i++)
     {
         free(keys[i]);
     }
