@@ -30,7 +30,8 @@ void print(char *buffer, int len)
 int main(int argc, char *argv[])
 {
     int opt;
-    char delimiter = 'a';
+    int used_delimiter = 0;
+    char delimiter;
     int buffer_size = 4096;
 
     while ((opt = getopt(argc, argv, "nzb:")) != -1)
@@ -38,18 +39,20 @@ int main(int argc, char *argv[])
         switch(opt)
         {
             case 'n':
-                if (delimiter != 'a')
+                if (used_delimiter != 0)
                 {
                     exit(2);
                 }
                 delimiter = '\n';
+                used_delimiter = 1;
                 break;
             case 'z':
-                if (delimiter != 'a')
+                if (used_delimiter != 0)
                 {
                     exit(2);
                 }
                 delimiter = '\0';
+                used_delimiter = 1;
                 break;
             case 'b':
                 buffer_size = atoi(optarg);
@@ -59,9 +62,10 @@ int main(int argc, char *argv[])
         }
     }
 
-    if (delimiter == 'a')
+    if (used_delimiter == 0)
     {
         delimiter = '\n';
+        used_delimiter = 1;
     }
 
     char *buffer = malloc(buffer_size);
