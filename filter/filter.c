@@ -5,13 +5,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 
-int buffer_size = 4096;
-
-char delimiter = 'a';
-int eof = 0;
-int read_symbol = 0;
-
-int next(char *buffer, int begin, int end)
+int next(char *buffer, int begin, int end, char delimiter)
 {
     int i;
     for (i = begin; i < end; i++)
@@ -36,6 +30,9 @@ void print(char *buffer, int len)
 int main(int argc, char *argv[])
 {
     int opt;
+    char delimiter = 'a';
+    int buffer_size = 4096;
+
     while ((opt = getopt(argc, argv, "nzb:")) != -1)
     {
         switch(opt)
@@ -67,14 +64,16 @@ int main(int argc, char *argv[])
         delimiter = '\n';
     }
 
-    char *buffer = malloc(sizeof(char) * buffer_size);
+    char *buffer = malloc(buffer_size);
     int devnull = open("/dev/null", O_WRONLY);
+    int eof_flag = 0;
+    int read_symbol = 0;
 
-    while (!eof)
+    while (!eof_flag)
     {
         int position = 0;
         int pos;
-        while ((pos = next(buffer, position, read_symbol)) == -1)
+        while ((pos = next(buffer, position, read_symbol, delimiter)) == -1)
         {
             position = read_symbol;
             if (read_symbol == buffer_size)
@@ -84,7 +83,7 @@ int main(int argc, char *argv[])
             int res = read(0, buffer + position, buffer_size - position);
             if (res == 0)
             {   
-                eof = 1;
+                eof_flag = 1;
                 if (read_symbol == 0)
                 {
                     pos = -1;
@@ -96,7 +95,7 @@ int main(int argc, char *argv[])
         }
         if (pos != -1)
         {
-            char *str = malloc(sizeof(char) * (pos + 1));
+            char *str = malloc(pos + 1);
             memcpy(str, buffer, pos + 1);
             str[pos] = '\0';
             char **arr = malloc(sizeof(char *) * (argc - optind + 2));
@@ -120,17 +119,17 @@ int main(int argc, char *argv[])
             }
             else
             {
-                int i;
                 dup2(devnull, 1);
                 execvp(arr[0], arr);
                 exit(1);
             }
             free(str);
             free(arr);
-            memmove(buffer, buffer + pos + 1, sizeof(char) * (buffer_size - pos - 1));
+            memmove(buffer, buffer + pos + 1, buffer_size - pos - 1);
             read_symbol -= pos + 1;
         }
     }
     close(devnull);
+    free(buffer);
     return 0;
 }
