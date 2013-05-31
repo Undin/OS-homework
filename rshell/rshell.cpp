@@ -10,38 +10,31 @@
 #include <signal.h>
 #include <pty.h>
 #include <sys/wait.h>
+#include <poll.h>
+#include <errno.h>
 
 int pid;
+
 
 void handler(int)
 {
     kill(pid, SIGINT);
 }
 
-void print(int fd, char *buf, int size)
-{
-    int written = 0;
-    while (written < size)
-    {
-        written += write(fd, buf + written, size - written);
-    }
-}
+const int ERR = POLLERR | POLLHUP | POLLNVAL;
+const int buffer_size = 4096;
 
-bool exchange_data(int fd1, int fd2, char *buf, int size)
+void close_and_exit(int fd1, int fd2)
 {
-    int res = read(fd1, buf, size);
-    if (res > 0)
-    {
-        print(fd2, buf, res);
-        return true;
-    }
-    return false;
+    close(fd1);
+    close(fd2);
+    exit(1);
 }
 
 int main()
 {
     pid = fork();
-    if (!pid)
+    if (pid == 0)
     {
         setsid();
         printf("create session 1\n");
@@ -97,7 +90,7 @@ int main()
             else
             {
                 int master, slave;
-                char buffer[4096];
+                char buffer[buffer_size];
                 int ttyfd = openpty(&master, &slave, buffer, NULL, NULL);
                 if (ttyfd == -1)
                 {
@@ -116,27 +109,95 @@ int main()
                     dup2(slave, 1);
                     dup2(slave, 2);
                     close(slave);
-                    execl("/bin/bash", "bash", NULL);
+                    execl("/bin/sh", "sh", NULL);
                     exit(255);
                 }
                 else
                 {
                     close(slave);
-                    fcntl(master, O_NONBLOCK);
-                    fcntl(fd, O_NONBLOCK);
-                    char buf[4096];
+                    char buf[2][buffer_size];
+                    int size[2];
+                    bool dead[2];
+                    dead[0] = false;
+                    dead[1] = false;
+                    size[0] = 0;
+                    size[1] = 0;
+                    pollfd fds[2];
+                    fds[0].fd = master;
+                    fds[1].fd = fd;
+                    fds[0].events = POLLIN | ERR;
+                    fds[1].events = POLLIN | ERR;
                     while (true)
                     {
-                        if (!(exchange_data(master, fd, buf, 4096) &&
-                              exchange_data(fd, master, buf, 4096)))
+                        int res = poll(fds, 2, -1);
+                        if (res == -1)
                         {
-                            break;
+                            if (errno == EINTR)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                close_and_exit(fd, master);
+                            }
                         }
-                        sleep(1);
+                        for (int i = 0; i < 2; i++)
+                        {
+                            if (!dead[i] && fds[i].revents & ERR)
+                            {
+                                dead[i] = true;
+                            }
+                            if (!dead[i] && fds[i].revents & POLLIN)
+                            {
+                                int res = read(fds[i].fd, buf[i] + size[i], buffer_size - size[i]);
+                                if (res <= 0)
+                                {
+                                    dead[i] = true;
+                                }
+                                else
+                                {
+                                    size[i] += res;
+                                }
+                            }
+                            if (!dead[i] && fds[i].revents & POLLOUT)
+                            {
+                                int r = write(fds[i].fd, buf[1 - i], size[1 - i]);
+                                if (r < 0)
+                                {
+                                    dead[i] = true;
+                                }
+                                else
+                                {
+
+                                    memmove(buf[1 - i], buf[1 - i] + r, size[1 - i] - r);
+                                    size[1 - i] -= r;
+                                }
+                            }
+                        }
+                        if (dead[0] && dead[1])
+                        {
+                            close_and_exit(fd, master);
+                        }
+                        for (int i = 0; i < 2; i++)
+                        {
+                            if (size[i] > 0)
+                            {
+                                fds[1 - i].events |= POLLOUT;
+                                if (size[i] == buffer_size)
+                                {
+                                    fds[i].events &= ~POLLIN;
+                                }
+                                else
+                                {
+                                    fds[i].events |= POLLIN;
+                                }
+                            }
+                        }
+                        if ((dead[0] && size[0] == 0) || (dead[1] && size[1] == 0))
+                        {
+                            close_and_exit(fd, master);
+                        }
                     }
-                    close(master);
-                    close(fd);
-                    exit(0);
                 }
             }
         }
