@@ -9,12 +9,11 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <pty.h>
-#define _XOPEN_SOURCE
-#define _GNU_SOURCE
+#include <sys/wait.h>
 
 int pid;
 
-void handler(int signum)
+void handler(int)
 {
     kill(pid, SIGINT);
 }
@@ -26,6 +25,17 @@ void print(int fd, char *buf, int size)
     {
         written += write(fd, buf + written, size - written);
     }
+}
+
+bool exchange_data(int fd1, int fd2, char *buf, int size)
+{
+    int res = read(fd1, buf, size);
+    if (res > 0)
+    {
+        print(fd2, buf, res);
+        return true;
+    }
+    return false;
 }
 
 int main()
@@ -72,7 +82,7 @@ int main()
         }
         struct sockaddr addr;
         socklen_t addr_len = sizeof(struct sockaddr);
-        while (1)
+        while (true)
         {
             int fd = accept(sfd, &addr, &addr_len);
             if (fd == -1)
@@ -80,7 +90,7 @@ int main()
                 perror("error in accept");
                 exit(1);
             }
-            if (fork() == 0)
+            if (fork() != 0)
             {
                 close(fd);
             }
@@ -89,8 +99,15 @@ int main()
                 int master, slave;
                 char buffer[4096];
                 int ttyfd = openpty(&master, &slave, buffer, NULL, NULL);
+                if (ttyfd == -1)
+                {
+                    perror("error in openpty");
+                    exit(1);
+                }
                 if (!fork())
-                {   
+                {
+                    close(fd);
+                    close(master);
                     setsid();
                     printf("create session 2\n");
                     int ff = open(buffer, O_RDWR);
@@ -98,11 +115,8 @@ int main()
                     dup2(slave, 0);
                     dup2(slave, 1);
                     dup2(slave, 2);
-                    //close(slave);
-                    close(master);
-                    close(fd);
-                    execl("/bin/bash", "bash", NULL);
                     close(slave);
+                    execl("/bin/bash", "bash", NULL);
                     exit(255);
                 }
                 else
@@ -111,15 +125,18 @@ int main()
                     fcntl(master, O_NONBLOCK);
                     fcntl(fd, O_NONBLOCK);
                     char buf[4096];
-                    int res;
-                    while (1)
+                    while (true)
                     {
-                        res = read(fd, buffer, 4096);
-                        print(master, buffer, res);
-                        res = read(master, buffer, 4096);
-                        print(fd, buffer, res);
+                        if (!(exchange_data(master, fd, buf, 4096) &&
+                              exchange_data(fd, master, buf, 4096)))
+                        {
+                            break;
+                        }
                         sleep(1);
                     }
+                    close(master);
+                    close(fd);
+                    exit(0);
                 }
             }
         }
@@ -128,6 +145,8 @@ int main()
     else
     {
         signal(SIGINT, handler);
+        int status;
+        waitpid(pid, &status, 0);
     }    
     return 0;
 }
