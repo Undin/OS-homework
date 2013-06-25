@@ -55,17 +55,25 @@ int next_token(char *buffer, int  begin, int end, char delimiter)
     return -1;
 }
 
-string next(string &str, char delimiter)
+vector<string> split(const string &str, char delimiter)
 {
-    int pos = str.find(delimiter);
-    string s(str, 0, pos);
-    str.erase(0, pos + 1);
-    return s;
+    vector<string> res;
+    auto last = str.cbegin();
+    for (auto i = str.cbegin(); i != str.cend(); i++)
+    {
+        if (*i == delimiter)
+        {
+            res.push_back(string(last, i));
+            last = i + 1;
+        }
+    }
+    res.push_back(string(last, str.cend() - 1));
+    return res;
 }
 
 int main(int argc, char **argv)
 {
-    if (argc < 3)
+    if (argc < 22)
     {
         perror("invalid arguments");
         exit(1);
@@ -174,7 +182,7 @@ int main(int argc, char **argv)
         int res = poll(fds.data(), fds.size(), -1);
         if (res == -1)
         {
-            printf("(((((\n");
+            printf(":(((((\n");
             break;
         }
         if (fds[0].revents & ERR)
@@ -240,34 +248,30 @@ int main(int argc, char **argv)
             }
             else
             {
-                string command(buffers[1].first, res);
+                vector<string> split_com = split(string(buffers[1].first, res), ' ');
                 buffers[1].second -= res;
                 readed[1] = 0;
                 memmove(buffers[1].first, buffers[1].first + res, buffers[1].second);
 
-                string com = next(command, ' ');
-                if (com == "a")
+                if (split_com[0] == "a" && split_com.size() == 4)
                 {
-                    string key = next(command, ' ');
-                    string value1 = next(command, ' ');
-                    string value2 = next(command, '\n');
                     string id(argv[1]);
                     id.append(to_string(time(NULL)));
                     messages.insert(id);
                     string message;
                     bool is_insert = true;
-                    auto it = m.find(key);
+                    auto it = m.find(split_com[1]);
                     if (it == m.end())
                     {
-                        m[key] = vector<string>();
-                        it = m.find(key);
+                        m[split_com[1]] = vector<string>();
+                        it = m.find(split_com[1]);
                         is_insert = false;
                     }
                     else
                     {
                         for (int j = it->second.size() - 1; j >= 0; j--)
                         {
-                            if (it->second[j] == value1)
+                            if (it->second[j] == split_com[2])
                             {
                                 if ((size_t)j != it->second.size() - 1)
                                 {
@@ -275,9 +279,7 @@ int main(int argc, char **argv)
                                     {
                                         it->second.push_back(COLLISION);
                                     }
-                                    message = "c ";
-                                    message.append(id + " ");
-                                    message.append(key + "\n");
+                                    message = "c " + id + " " + split_com[1] + "\n";
                                 }
                                 else
                                 {
@@ -290,12 +292,9 @@ int main(int argc, char **argv)
                     }
                     if (!is_insert)
                     {
-                        it->second.push_back(value2);
-                        message = "a ";
-                        message.append(id + " ");
-                        message.append(key + " ");
-                        message.append(value1 + " ");
-                        message.append(value2 + "\n");
+                        it->second.push_back(split_com[3]);
+                        message = "a " + id + " " + split_com[1]
+                                + " " + split_com[2] + " " + split_com[3] + "\n";
                     }
                     if (message.size() > 0)
                     {
@@ -305,23 +304,30 @@ int main(int argc, char **argv)
                             fds[j].events = POLLOUT | ERR;
                         }
                     }
+                    continue;
                 }
-                if (com == "p")
+                if (split_com[0] == "p" && split_com.size() == 2)
                 {
-                    string key = next(command, '\n');
-                    auto it = m.find(key);
+                    auto it = m.find(split_com[1]);
                     if (it != m.end())
                     {
                         string message = it->second[0];
                         for (size_t j = 1; j < it->second.size(); j++)
                         {
-                            message.append("->" + it->second[j]);
+                            message.append(" -> " + it->second[j]);
                         }
                         message += "\n";
                         add_message(buffers[2].first, &buffers[2].second, message);
                         fds[2].events = POLLOUT | ERR;
                     }
+                    else
+                    {
+                        perror("key not found");
+                    }
+                    continue;
                 }
+
+                perror("invalid command");
             }
         }
         
@@ -338,34 +344,29 @@ int main(int argc, char **argv)
                 else
                 {
                     string command(buffers[i].first, res);
-                    string command2 = command;
+                    vector<string> split_com = split(command, ' ');
                     buffers[i].second -= res;
                     readed[i] = 0;
                     memmove(buffers[i].first, buffers[i].first + res, buffers[i].second);
-                    string com = next(command, ' ');
-                    string id = next(command, ' ');
                     string message;
                     bool is_insert = true;
-                    if (messages.find(id) == messages.end())
+                    if (messages.find(split_com[1]) == messages.end())
                     {
-                        messages.insert(id);
-                        if (com == "a")
+                        messages.insert(split_com[1]);
+                        if (split_com[0] == "a")
                         {
-                            string key = next(command, ' ');
-                            string value1 = next(command, ' ');
-                            string value2 = next(command, '\n');
-                            auto it = m.find(key);
+                            auto it = m.find(split_com[2]);
                             if (it == m.end())
                             {
-                                m[key] = vector<string>();
-                                it = m.find(key);
+                                m[split_com[2]] = vector<string>();
+                                it = m.find(split_com[2]);
                                 is_insert = false;
                             }
                             else
                             {
                                 for (int j = it->second.size() - 1; j >= 0; j--)
                                 {
-                                    if (it->second[j] == value1)
+                                    if (it->second[j] == split_com[3])
                                     {
                                         if ((size_t)j != it->second.size() - 1)
                                         {
@@ -373,10 +374,9 @@ int main(int argc, char **argv)
                                             {
                                                 it->second.push_back(COLLISION);
                                             }
-                                            id = string(argv[1]);
+                                            string id(argv[1]);
                                             id.append(to_string(time(NULL)));
-                                            message = "c ";                                                                          message.append(id + " ");
-                                            message.append(key + "\n");
+                                            message = "c " + id + " " + split_com[2] + "\n";
                                             messages.insert(id);
                                         }
                                         else
@@ -389,19 +389,18 @@ int main(int argc, char **argv)
                             }
                             if (!is_insert)
                             {
-                                it->second.push_back(value2);
-                                message = command2;
+                                it->second.push_back(split_com[4]);
+                                message = command;
                             }
                         }
-                        if (com == "c")
+                        if (split_com[0] == "c")
                         {
-                            message = command2;
-                            string key = next(command, '\n');
-                            auto it = m.find(key);
+                            message = command;
+                            auto it = m.find(split_com[2]);
                             if (it == m.end())
                             {
                                 vector<string> tmp_v = {COLLISION};
-                                m[key] = tmp_v;
+                                m[split_com[2]] = tmp_v;
                             }
                             else
                             {
