@@ -257,14 +257,11 @@ int main(int argc, char **argv)
                     auto it = m.find(key);
                     if (it == m.end())
                     {
-                        if (value1 == COLLISION)
-                        {
-                            set<string> tmp_set = {id};
-                            vector<string> tmp_v = {value1};
-                            m[key] = make_pair(tmp_set, tmp_v);
-                            it = m.find(key);
-                            is_insert = false;
-                        }
+                        set<string> tmp_set = {id};
+                        //vector<string> tmp_v = {value1};
+                        m[key] = make_pair(tmp_set, vector<string>());
+                        it = m.find(key);
+                        is_insert = false;
                     }
                     else
                     {
@@ -356,14 +353,11 @@ int main(int argc, char **argv)
                         string value2 = next(command, '\n');
                         if (it == m.end())
                         {
-                            if (value1 == COLLISION)
-                            {
-                                set<string> tmp_set = {id};
-                                vector<string> tmp_v = {value1};
-                                m[key] = make_pair(tmp_set, tmp_v);
-                                it = m.find(key);
-                                is_insert = false;
-                            }
+                            set<string> tmp_set = {id};
+                            //vector<string> tmp_v = {value1};
+                            m[key] = make_pair(tmp_set, vector<string>());
+                            it = m.find(key);
+                            is_insert = false;
                         }
                         else
                         {
