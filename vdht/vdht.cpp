@@ -259,7 +259,6 @@ int main(int argc, char **argv)
                     auto it = m.find(key);
                     if (it == m.end())
                     {
-                        //vector<string> tmp_v = {value1};
                         m[key] = vector<string>();
                         it = m.find(key);
                         is_insert = false;
@@ -358,7 +357,6 @@ int main(int argc, char **argv)
                             auto it = m.find(key);
                             if (it == m.end())
                             {
-                                //vector<string> tmp_v = {value1};
                                 m[key] = vector<string>();
                                 it = m.find(key);
                                 is_insert = false;
@@ -397,19 +395,16 @@ int main(int argc, char **argv)
                         }
                         if (com == "c")
                         {
-                            //printf("мне пришла коллизия!\n");
                             message = command2;
                             string key = next(command, '\n');
                             auto it = m.find(key);
                             if (it == m.end())
                             {
-                                //printf("???\n");
                                 vector<string> tmp_v = {COLLISION};
                                 m[key] = tmp_v;
                             }
                             else
                             {
-                                //printf("!!!\n");
                                 if (it->second.back() != COLLISION)
                                 {
                                     it->second.push_back(COLLISION);
@@ -431,5 +426,13 @@ int main(int argc, char **argv)
     }
     
     close(sfd);
+    for (size_t i = 0; i < fds.size(); i++)
+    {
+        free(buffers[i].first);
+    }
+    for (size_t i = 3; i < fds.size(); i += 2)
+    {
+        close(fds[i].fd);
+    }
     return 0;
 }
