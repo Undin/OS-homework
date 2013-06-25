@@ -119,7 +119,8 @@ int main(int argc, char **argv)
     vector<pollfd> fds;
     vector<pair<char *, size_t> > buffers;
     vector<size_t> readed;
-    map<string, pair<set<string>, vector<string> > > m;
+    map<string, vector<string> > m;
+    set<string> messages;
 
     pollfd p;
 
@@ -252,27 +253,29 @@ int main(int argc, char **argv)
                     string value2 = next(command, '\n');
                     string id(argv[1]);
                     id.append(to_string(time(NULL)));
+                    messages.insert(id);
                     string message;
                     bool is_insert = true;
                     auto it = m.find(key);
                     if (it == m.end())
                     {
-                        set<string> tmp_set = {id};
                         //vector<string> tmp_v = {value1};
-                        m[key] = make_pair(tmp_set, vector<string>());
+                        m[key] = vector<string>();
                         it = m.find(key);
                         is_insert = false;
                     }
                     else
                     {
-                        it->second.first.insert(id);
-                        for (int j = it->second.second.size() - 1; j >= 0; j--)
+                        for (int j = it->second.size() - 1; j >= 0; j--)
                         {
-                            if (it->second.second[j] == value1)
+                            if (it->second[j] == value1)
                             {
-                                if ((size_t)j != it->second.second.size() - 1)
+                                if ((size_t)j != it->second.size() - 1)
                                 {
-                                    it->second.second.push_back(COLLISION);
+                                    if (it->second.back() != COLLISION)
+                                    {
+                                        it->second.push_back(COLLISION);
+                                    }
                                     message = "c ";
                                     message.append(id + " ");
                                     message.append(key + "\n");
@@ -288,7 +291,7 @@ int main(int argc, char **argv)
                     }
                     if (!is_insert)
                     {
-                        it->second.second.push_back(value2);
+                        it->second.push_back(value2);
                         message = "a ";
                         message.append(id + " ");
                         message.append(key + " ");
@@ -310,10 +313,10 @@ int main(int argc, char **argv)
                     auto it = m.find(key);
                     if (it != m.end())
                     {
-                        string message = it->second.second[0];
-                        for (size_t j = 1; j < it->second.second.size(); j++)
+                        string message = it->second[0];
+                        for (size_t j = 1; j < it->second.size(); j++)
                         {
-                            message.append("->" + it->second.second[j]);
+                            message.append("->" + it->second[j]);
                         }
                         message += "\n";
                         add_message(buffers[2].first, &buffers[2].second, message);
@@ -336,46 +339,47 @@ int main(int argc, char **argv)
                 else
                 {
                     string command(buffers[i].first, res);
-                    //printf("%s\n", command.c_str());
                     string command2 = command;
                     buffers[i].second -= res;
                     readed[i] = 0;
                     memmove(buffers[i].first, buffers[i].first + res, buffers[i].second);
                     string com = next(command, ' ');
                     string id = next(command, ' ');
-                    string key = next(command, ' ');
                     string message;
                     bool is_insert = true;
-                    auto it = m.find(key);
-                    if (com == "a")
+                    if (messages.find(id) == messages.end())
                     {
-                        string value1 = next(command, ' ');
-                        string value2 = next(command, '\n');
-                        if (it == m.end())
+                        messages.insert(id);
+                        if (com == "a")
                         {
-                            set<string> tmp_set = {id};
-                            //vector<string> tmp_v = {value1};
-                            m[key] = make_pair(tmp_set, vector<string>());
-                            it = m.find(key);
-                            is_insert = false;
-                        }
-                        else
-                        {
-                            if (it->second.first.find(id) == it->second.first.end())
+                            string key = next(command, ' ');
+                            string value1 = next(command, ' ');
+                            string value2 = next(command, '\n');
+                            auto it = m.find(key);
+                            if (it == m.end())
                             {
-                                it->second.first.insert(id);
-                                for (int j = it->second.second.size() - 1; j >= 0; j--)
+                                //vector<string> tmp_v = {value1};
+                                m[key] = vector<string>();
+                                it = m.find(key);
+                                is_insert = false;
+                            }
+                            else
+                            {
+                                for (int j = it->second.size() - 1; j >= 0; j--)
                                 {
-                                    if (it->second.second[j] == value1)
+                                    if (it->second[j] == value1)
                                     {
-                                        if ((size_t)j != it->second.second.size() - 1)
+                                        if ((size_t)j != it->second.size() - 1)
                                         {
-                                            it->second.second.push_back(COLLISION);
-                                            message = "c ";
+                                            if (it->second.back() != COLLISION)
+                                            {
+                                                it->second.push_back(COLLISION);
+                                            }
                                             id = string(argv[1]);
                                             id.append(to_string(time(NULL)));
-                                            message.append(id + " ");
+                                            message = "c ";                                                                          message.append(id + " ");
                                             message.append(key + "\n");
+                                            messages.insert(id);
                                         }
                                         else
                                         {
@@ -385,41 +389,40 @@ int main(int argc, char **argv)
                                     }
                                 }
                             }
-                        }
-                        if (!is_insert)
-                        {
-                            it->second.second.push_back(value2);
-                            message = command2;
-                        }
-                    }
-                    if (com == "c")
-                    {
-                        printf("мне пришла коллизия!\n");
-                        if (it == m.end())
-                        {
-                            printf("???\n");
-                            set<string> tmp_set = {id};
-                            vector<string> tmp_v = {COLLISION, COLLISION};
-                            m[key] = make_pair(tmp_set, tmp_v);
-                            message = command2;
-                        }
-                        else
-                        {
-                            if (it->second.first.find(id) == it->second.first.end())
+                            if (!is_insert)
                             {
-                                printf("!!!\n");
-                                it->second.first.insert(id);
-                                it->second.second.push_back(COLLISION);
+                                it->second.push_back(value2);
                                 message = command2;
                             }
                         }
-                    }
-                    if (message.size() > 0)
-                    {
-                        for (size_t j = 4; j < fds.size(); j += 2)
+                        if (com == "c")
                         {
-                            add_message(buffers[j].first, &buffers[j].second, command2);
-                            fds[j].events = POLLOUT | ERR;
+                            //printf("мне пришла коллизия!\n");
+                            message = command2;
+                            string key = next(command, '\n');
+                            auto it = m.find(key);
+                            if (it == m.end())
+                            {
+                                //printf("???\n");
+                                vector<string> tmp_v = {COLLISION};
+                                m[key] = tmp_v;
+                            }
+                            else
+                            {
+                                //printf("!!!\n");
+                                if (it->second.back() != COLLISION)
+                                {
+                                    it->second.push_back(COLLISION);
+                                }
+                            }
+                        }
+                        if (message.size() > 0)
+                        {
+                            for (size_t j = 4; j < fds.size(); j += 2)
+                            {
+                                add_message(buffers[j].first, &buffers[j].second, message);
+                                fds[j].events = POLLOUT | ERR;
+                            }
                         }
                     }
                 }
@@ -428,6 +431,5 @@ int main(int argc, char **argv)
     }
     
     close(sfd);
-   
     return 0;
 }
