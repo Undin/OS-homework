@@ -73,7 +73,7 @@ vector<string> split(const string &str, char delimiter)
 
 int main(int argc, char **argv)
 {
-    if (argc < 22)
+    if (argc < 2)
     {
         perror("invalid arguments");
         exit(1);
@@ -126,7 +126,9 @@ int main(int argc, char **argv)
     
     vector<pollfd> fds;
     vector<pair<char *, size_t> > buffers;
+    vector<pair<char *, size_t> > buffers_out;
     vector<size_t> readed;
+    vector<size_t> readed_out;
     map<string, vector<string> > m;
     set<string> messages;
 
@@ -136,19 +138,25 @@ int main(int argc, char **argv)
     p.fd = sfd;
     fds.push_back(p);
     buffers.push_back(make_pair((char *)NULL, 0));
+    buffers_out.push_back(make_pair((char *)NULL, 0));
     readed.push_back(0);
+    readed_out.push_back(0);
 
     p.events = POLLIN | ERR;
     p.fd = 0;
     fds.push_back(p);
     buffers.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
+    buffers_out.push_back(make_pair((char *)NULL, 0));
     readed.push_back(0);
+    readed_out.push_back(0);
 
-    p.events = 0;
+    p.events = ERR;
     p.fd = 2;
     fds.push_back(p);
-    buffers.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
+    buffers.push_back(make_pair((char *)NULL, 0));
+    buffers_out.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
     readed.push_back(0);
+    readed_out.push_back(0);
 
     for (size_t i = 0; i < address.size(); i++)
     {
@@ -166,12 +174,14 @@ int main(int argc, char **argv)
                     p.events = POLLIN | ERR;
                     fds.push_back(p);
                     buffers.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
+                    buffers_out.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
                     readed.push_back(0);
+                    readed_out.push_back(0);
 
-                    p.events = 0;
+                    /*p.events = 0;
                     fds.push_back(p);
                     buffers.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
-                    readed.push_back(0);
+                    readed.push_back(0);*/
                 }
             }
         }
@@ -188,6 +198,8 @@ int main(int argc, char **argv)
         if (fds[0].revents & ERR)
         {
             fds[0].events = 0;
+            close(fds[0].fd);
+            fds[0].fd = -1;
         }
         if (fds[0].revents & POLLIN)
         {
@@ -197,12 +209,15 @@ int main(int argc, char **argv)
             p.events = POLLIN | ERR;
             fds.push_back(p);
             buffers.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
-            readed.push_back(0);
+            buffers_out.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
 
-            p.events = 0;
+            readed.push_back(0);
+            readed_out.push_back(0);
+
+            /*p.events = 0;
             fds.push_back(p);
             buffers.push_back(make_pair((char *)malloc(BUFFER_SIZE), 0));
-            readed.push_back(0);
+            readed.push_back(0);*/
 
             printf("new client connected\n");
         }
@@ -211,8 +226,11 @@ int main(int argc, char **argv)
         {
             if (fds[i].revents & ERR)
             {
-                fds[2 * ((i + 1) / 2) - 1].events = 0;
-                fds[2 * ((i + 1) / 2)].events = 0;
+                /*fds[2 * ((i + 1) / 2) - 1].events = 0;
+                fds[2 * ((i + 1) / 2)].events = 0;*/
+                fds[i].events = 0;
+                close(fds[i].fd);
+                fds[i].fd = -1;
             }
 
             if (buffers[i].second != BUFFER_SIZE && fds[i].revents & POLLIN)
@@ -224,17 +242,17 @@ int main(int argc, char **argv)
                 }
                 else
                 {
-                    fds[i].events = 0;
-                    fds[i + 1].events = 0;
+                    fds[i].events ^= POLLIN;
+                    //fds[i + 1].events = 0;
                 }
             }
 
             if (fds[i].revents & POLLOUT)
             {
-                print(fds[i].fd, &buffers[i]);
-                if (buffers[i].second == 0)
+                print(fds[i].fd, &buffers_out[i]);
+                if (buffers_out[i].second == 0)
                 {
-                    fds[i].events = 0;
+                    fds[i].events ^= POLLOUT;
                 }
             }
         }
@@ -298,10 +316,13 @@ int main(int argc, char **argv)
                     }
                     if (message.size() > 0)
                     {
-                        for (size_t j = 4; j < fds.size(); j += 2)
+                        for (size_t j = 3; j < fds.size(); j++)
                         {
-                            add_message(buffers[j].first, &buffers[j].second, message);
-                            fds[j].events = POLLOUT | ERR;
+                            if (fds[j].fd != -1)
+                            {
+                                add_message(buffers_out[j].first, &buffers_out[j].second, message);
+                                fds[j].events |=  POLLOUT;
+                            }
                         }
                     }
                     continue;
@@ -317,8 +338,11 @@ int main(int argc, char **argv)
                             message.append(" -> " + it->second[j]);
                         }
                         message += "\n";
-                        add_message(buffers[2].first, &buffers[2].second, message);
-                        fds[2].events = POLLOUT | ERR;
+                        if (fds[2].fd != -1)
+                        {
+                            add_message(buffers_out[2].first, &buffers_out[2].second, message);
+                            fds[2].events |= POLLOUT;
+                        }
                     }
                     else
                     {
@@ -331,7 +355,7 @@ int main(int argc, char **argv)
             }
         }
         
-        for (size_t i = 3; i < fds.size(); i += 2)
+        for (size_t i = 3; i < fds.size(); i++)
         {
         
             if (buffers[i].second != 0 && buffers[i].second > readed[i])
@@ -412,10 +436,13 @@ int main(int argc, char **argv)
                         }
                         if (message.size() > 0)
                         {
-                            for (size_t j = 4; j < fds.size(); j += 2)
+                            for (size_t j = 3; j < fds.size(); j++)
                             {
-                                add_message(buffers[j].first, &buffers[j].second, message);
-                                fds[j].events = POLLOUT | ERR;
+                                if (fds[j].fd != -1)
+                                {
+                                    add_message(buffers_out[j].first, &buffers_out[j].second, message);
+                                    fds[j].events |= POLLOUT;
+                                }
                             }
                         }
                     }
@@ -427,11 +454,21 @@ int main(int argc, char **argv)
     close(sfd);
     for (size_t i = 0; i < fds.size(); i++)
     {
-        free(buffers[i].first);
+        if (buffers[i].first != NULL)
+        {
+            free(buffers[i].first);
+        }
+        if (buffers_out[i].first != NULL)
+        {
+            free(buffers_out[i].first);
+        }
     }
-    for (size_t i = 3; i < fds.size(); i += 2)
+    for (size_t i = 3; i < fds.size(); i++)
     {
-        close(fds[i].fd);
+        if (fds[i].fd != -1)
+        {
+            close(fds[i].fd);
+        }
     }
     return 0;
 }
